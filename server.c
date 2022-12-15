@@ -110,8 +110,13 @@ void client_constructor(FILE *cxstr) {
     // to the input argument.
     // Step 2: Create the new client thread running the run_client routine.
     // Step 3: Detach the new client thread 
-    pthread_t new_thread; 
-    malloc(sizeof(cxstr)); 
+    pthread_t new_thread = 0; 
+    client_t *client = (client_t*) cxstr;
+    client->thread = new_thread;
+    client->prev = NULL; 
+    client->next = NULL; 
+    client->cxstr = cxstr; 
+    malloc(sizeof(client)); 
     run_client(cxstr); 
     pthread_create(&new_thread, 0, run_client, cxstr);
     pthread_detach(new_thread); 

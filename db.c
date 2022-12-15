@@ -95,8 +95,8 @@ int db_add(char *name, char *value) {
 }
 
 int db_remove(char *name) {
+    pthread_rwlock_wrlock(&head.rwlock);
     // TODO: Make this thread-safe!
-    pthread_rwlock_wrlock(&head.rwlock); 
     node_t *parent;
     node_t *dnode;
     node_t *next;
@@ -168,7 +168,7 @@ node_t *search(char *name, node_t *parent, node_t **parentpp) {
     // the target node, if it were there.
     //
     // TODO: Make this thread-safe!
-    pthread_rwlock_wrlock(&head.rwlock); 
+
     node_t *next;
     node_t *result;
 
@@ -191,7 +191,7 @@ node_t *search(char *name, node_t *parent, node_t **parentpp) {
     if (parentpp != NULL) {
         *parentpp = parent;
     }
-     pthread_rwlock_unlock(&head.rwlock); 
+
     return result;
 }
 
