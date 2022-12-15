@@ -171,7 +171,7 @@ void *run_client(void *arg) {
         
         while(comm_serve(client->cxstr, buffer1, buffer2) != -1){
             client_control_wait(); 
-            interpret_command(buffer1, buffer2, 1024);
+            interpret_command(buffer2, buffer1, 1024);
         }
         pthread_cleanup_pop(1);
     return NULL;
