@@ -1,13 +1,20 @@
 Questions
 
 1. Consider the thread created in start_listener. How many threads with this functionality should be running on the server at any given time?
+Just 1 
 
 2. In the listener function, what do each of the following fields of the sockaddr_in struct represent: sin_family, sin_port, and sin_addr.s_addr?
+sin_family stands represents the address of the internet which determines the types of IP addresses that your socket has communication with. The sin_port represents the port number of the sockaddr_in, which is represented as an integer. The sin_addr.s_addr represents the address of the sock as a hostshort that shown in network byte order. 
 
 3. What is the purpose of each of the following function calls in listener: socket, bind, listen, and accept? You should explain what each call does and what the effect would be if it were not called.
+socket creates an endpoint for communication and returns the file descriptor of that endpoint. If socket were not called, then -1 would be returned and a errno message would be printed. Bind assigns an address to a socket. The address is obtained from the second arguement in bind, which is a pointer to the sockaddr. If bind were not called, then we would have no way of attaching a address to a socket, which would make acessing sockets extremely difficult.  
+listen marks a socket as a passive socket and indicates that it will be utilized in accepting incoming connection requests. If listen were not called, then we would be unable to make sockets accept incoming conection requests. accept accepts a connection on a socket and returns the file descriptor referring to that newly created socket. If accept were not called the server would have no way of accepting and connections on the socket. 
 
 4. Which protocol (TCP or UDP) is used for communication? Why is this protocol used? (Hint: see line 37 in comm.c)
+The TCP protocol is used for communication as indicated by the socket(AF_INET, SOCK_STREAM, 0) line of code in line 37 of comm.c. TCP protocol is used because is creates a much more reliable connect between two sockets than UDP protocol. Additionally
 
 5. Describe what comm_serve does. How are the response and command parameters used? What would happen if the stream pointed to by cxstr were closed?
+Comm_serve transmits the contents in its response argument to the server. The command parameter is used to get the string from the stream pointed to by cxstr and response is used to push the string on to the stream pointed to by cxstr. If the stream pointed to by cxstr was closed, we would print out a stderr that indicates that the client connection was terminated. 
 
 6. Describe, in detail, what happens during each iteration of the while loop in the listener function. Be sure to include explanations of all significant function calls.
+In each while loop interation the server is checking for any new connections that might have appeared between an address and a socket. If a new connection has been recieved and the accept called in the if statement, returns a value greater than 0, then the function accepts the connection the socket indicated by lsock and it repeats the process. 
