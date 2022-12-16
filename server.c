@@ -110,16 +110,24 @@ void client_constructor(FILE *cxstr) {
     // to the input argument.
     // Step 2: Create the new client thread running the run_client routine.
     // Step 3: Detach the new client thread 
-    pthread_t new_thread = 0; 
-    client_t *client = (client_t*) cxstr;
-    client->thread = new_thread;
-    client->prev = NULL; 
-    client->next = NULL; 
+    client_t *client = malloc(sizeof(client_t)); 
+    //error check malloc
     client->cxstr = cxstr; 
-    malloc(sizeof(client)); 
-    run_client(cxstr); 
-    pthread_create(&new_thread, 0, run_client, cxstr);
-    pthread_detach(new_thread); 
+    client->prev = NULL; 
+    client->next = NULL;
+    pthread_create(&client->thread, 0, run_client, client);
+    pthread_detach(client->thread); 
+
+    // pthread_t new_thread = 0; 
+    // client_t *client = (client_t*) cxstr;
+    // client->thread = new_thread;
+    // client->prev = NULL; 
+    // client->next = NULL; 
+    // client->cxstr = cxstr; 
+    // malloc(sizeof(client)); 
+    // run_client(cxstr); 
+    // pthread_create(&new_thread, 0, run_client, cxstr);
+    // pthread_detach(new_thread); 
 }
 
 void client_destructor(client_t *client) {
@@ -144,26 +152,23 @@ void *run_client(void *arg) {
     //       cleanly.
     //
     // You will need to modify this when implementing functionality for stop and go!
-    int accepting_clients = 1; 
+     
     client_t *client = (client_t*) arg; 
     //int client_threads = 0; 
     pthread_mutex_lock(&thread_list_mutex); 
     if(accepting_clients == 0){
         client_destructor(client); 
+        pthread_mutex_unlock(&thread_list_mutex); 
         return NULL;        
     }
         pthread_cleanup_push(thread_cleanup, client);
-        client = arg; 
         if(thread_list_head == NULL){
-            client->prev = NULL; 
-            client->next = NULL; 
-            client->cxstr = (FILE*) arg; 
             thread_list_head = client; 
         }
         else{
-             client->prev = thread_list_head; 
-             client->next = thread_list_head->next; 
-             client->cxstr = (FILE*) arg;
+             client->next = thread_list_head; 
+             thread_list_head->prev = client; 
+             thread_list_head = client; 
         }
         pthread_mutex_lock(&server_control.server_mutex);
         server_control.num_client_threads++; 
