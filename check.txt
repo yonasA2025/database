@@ -1,0 +1,19 @@
+(root)
+ (null)
+ 5 5
+  3 4
+   12 354
+    (null)
+    (null)
+   342 45
+    (null)
+    (null)
+  7 8
+   56 32
+    (null)
+    (null)
+   78 23
+    (null)
+    786 34
+     (null)
+     (null)
