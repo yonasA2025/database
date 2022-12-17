@@ -11,7 +11,7 @@
 // The root node of the binary tree, unlike all
 // other nodes in the tree, this one is never
 // freed (it's allocated in the data region).
-node_t head = {"", "", 0, 0};
+node_t head = {"", "", 0, 0, PTHREAD_RWLOCK_INITIALIZER};
 
 node_t *node_constructor(char *arg_name, char *arg_value, node_t *arg_left,
                          node_t *arg_right) {
@@ -63,12 +63,14 @@ void db_query(char *name, char *result, int len) {
     // TODO: Make this thread-safe!
     node_t *target;
     target = search(name, &head, 0);
-
+    pthread_rwlock_wrlock(&target->rwlock); 
     if (target == 0) {
         snprintf(result, len, "not found");
+        pthread_rwlock_unlock(&target->rwlock); 
         return;
     } else {
         snprintf(result, len, "%s", target->value);
+        pthread_rwlock_unlock(&target->rwlock); 
         return;
     }
 }
@@ -80,8 +82,8 @@ int db_add(char *name, char *value) {
     node_t *target;
     node_t *newnode;
     if ((target = search(name, &head, &parent)) != 0) {
-        pthread_rwlock_wrlock(&parent->rwlock); 
-        pthread_rwlock_wrlock(&target->rwlock); 
+        pthread_rwlock_unlock(&parent->rwlock); 
+        pthread_rwlock_unlock(&target->rwlock); 
         return (0);
     }
 
