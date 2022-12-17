@@ -62,7 +62,7 @@ void node_destructor(node_t *node) {
 void db_query(char *name, char *result, int len) {
     // TODO: Make this thread-safe!
     node_t *target;
-    target = search(name, &head, 0);
+    target = search(name, &head, 0, 0);
     pthread_rwlock_rdlock(&target->rwlock); 
     if (target == 0) {
         snprintf(result, len, "not found");
@@ -80,7 +80,7 @@ int db_add(char *name, char *value) {
     node_t *parent;
     node_t *target;
     node_t *newnode;
-    if ((target = search(name, &head, &parent)) != 0) {
+    if ((target = search(name, &head, &parent, 1)) != 0) {
         pthread_rwlock_unlock(&parent->rwlock); 
         pthread_rwlock_unlock(&target->rwlock); 
         return (0);
@@ -105,7 +105,7 @@ int db_remove(char *name) {
     node_t *next;
 
     // first, find the node to be removed
-    if ((dnode = search(name, &head, &parent)) == 0) { 
+    if ((dnode = search(name, &head, &parent, 1)) == 0) { 
         pthread_rwlock_unlock(&parent->rwlock);
         // it's not there
         return (0);
@@ -169,7 +169,7 @@ int db_remove(char *name) {
     return (1);
 }
 
-node_t *search(char *name, node_t *parent, node_t **parentpp) {
+node_t *search(char *name, node_t *parent, node_t **parentpp, int lock) {
     // Search the tree, starting at parent, for a node containing
     // name (the "target node").  Return a pointer to the node,
     // if found, otherwise return 0.  If parentpp is not 0, then it points
@@ -177,6 +177,7 @@ node_t *search(char *name, node_t *parent, node_t **parentpp) {
     // is stored.  If the target node is not found, the location pointed to
     // by parentpp is set to what would be the the address of the parent of
     // the target node, if it were there.
+    // read is 0, write is 1
     //
     // TODO: Make this thread-safe!
 
@@ -191,12 +192,17 @@ node_t *search(char *name, node_t *parent, node_t **parentpp) {
     if (next == NULL) {
         result = NULL;
     } else {
-        pthread_rwlock_rdlock(&next->rwlock);
+        if(lock == 0){
+            pthread_rwlock_rdlock(&next->rwlock);
+        }
+        else{
+            pthread_rwlock_wrlock(&next->rwlock);
+        }
         if (strcmp(name, next->name) == 0) { 
             result = next;
         } else {
             pthread_rwlock_unlock(&parent->rwlock);
-            return search(name, next, parentpp);
+            return search(name, next, parentpp, lock);
         }
     }
 
@@ -224,7 +230,6 @@ void db_print_recurs(node_t *node, int lvl, FILE *out) {
     // print out the current node
     if (node == NULL) {
         fprintf(out, "(null)\n");
-        pthread_rwlock_unlock(&node->rwlock);
         return;
     }
     pthread_rwlock_rdlock(&node->rwlock);
@@ -236,6 +241,7 @@ void db_print_recurs(node_t *node, int lvl, FILE *out) {
 
     db_print_recurs(node->lchild, lvl + 1, out);
     db_print_recurs(node->rchild, lvl + 1, out);
+    pthread_rwlock_unlock(&node->rwlock);
 }
 
 int db_print(char *filename) {
