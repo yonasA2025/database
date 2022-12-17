@@ -105,6 +105,7 @@ int db_remove(char *name) {
 
     // first, find the node to be removed
     if ((dnode = search(name, &head, &parent)) == 0) { 
+        pthread_rwlock_unlock(&parent->rwlock);
         // it's not there
         return (0);
     }
@@ -112,20 +113,18 @@ int db_remove(char *name) {
     // We found it, if the node has no
     // right child, then we can merely replace its parent's pointer to
     // it with the node's left child.
-    pthread_rwlock_wrlock(&dnode->rwlock);
+   
     if (dnode->rchild == 0) {
-        pthread_rwlock_unlock(&parent->rwlock);
-        pthread_rwlock_unlock(&dnode->rwlock);
         if (strcmp(dnode->name, parent->name) < 0)
             parent->lchild = dnode->lchild;
         else
             parent->rchild = dnode->lchild;
 
         // done with dnode
+        pthread_rwlock_unlock(&dnode->rwlock); 
         node_destructor(dnode);
-    } else if (dnode->lchild == 0) {
         pthread_rwlock_unlock(&parent->rwlock);
-        pthread_rwlock_unlock(&dnode->rwlock);
+    } else if (dnode->lchild == 0) {
         // ditto if the node had no left child
         if (strcmp(dnode->name, parent->name) < 0)
             parent->lchild = dnode->rchild;
@@ -133,13 +132,15 @@ int db_remove(char *name) {
             parent->rchild = dnode->rchild;
 
         // done with dnode
+        pthread_rwlock_unlock(&dnode->rwlock);
         node_destructor(dnode);
+        pthread_rwlock_unlock(&parent->rwlock);
     } else {
         // Find the lexicographically smallest node in the right subtree and
         // replace the node to be deleted with that node. This new node thus is
         // lexicographically smaller than all nodes in its right subtree, and
         // greater than all nodes in its left subtree
-
+        pthread_rwlock_unlock(&parent->rwlock);
         next = dnode->rchild;
         pthread_rwlock_wrlock(&next->rwlock); 
         node_t **pnext = &dnode->rchild;
@@ -149,19 +150,21 @@ int db_remove(char *name) {
             node_t *nextl = next->lchild;
             pthread_rwlock_wrlock(&nextl->rwlock); 
             pnext = &next->lchild;
+            pthread_rwlock_unlock(&next->rwlock); 
             next = nextl;
         }
-        pthread_rwlock_unlock(&next->rwlock); 
-        pthread_rwlock_unlock(&dnode->rwlock); 
+
         dnode->name = realloc(dnode->name, strlen(next->name) + 1);
         dnode->value = realloc(dnode->value, strlen(next->value) + 1);
 
         snprintf(dnode->name, MAXLEN, "%s", next->name);
         snprintf(dnode->value, MAXLEN, "%s", next->value);
         *pnext = next->rchild;
-
+        pthread_rwlock_unlock(&next->rwlock); 
         node_destructor(next);
+        pthread_rwlock_unlock(&dnode->rwlock); 
     }
+
     return (1);
 }
 
