@@ -108,21 +108,24 @@ int db_remove(char *name) {
         // it's not there
         return (0);
     }
-    pthread_rwlock_wrlock(&parent->rwlock); 
+   
     // We found it, if the node has no
     // right child, then we can merely replace its parent's pointer to
     // it with the node's left child.
     pthread_rwlock_wrlock(&dnode->rwlock);
     if (dnode->rchild == 0) {
+        pthread_rwlock_unlock(&parent->rwlock);
+        pthread_rwlock_unlock(&dnode->rwlock);
         if (strcmp(dnode->name, parent->name) < 0)
             parent->lchild = dnode->lchild;
         else
             parent->rchild = dnode->lchild;
 
         // done with dnode
-        pthread_rwlock_unlock(&dnode->rwlock);
         node_destructor(dnode);
     } else if (dnode->lchild == 0) {
+        pthread_rwlock_unlock(&parent->rwlock);
+        pthread_rwlock_unlock(&dnode->rwlock);
         // ditto if the node had no left child
         if (strcmp(dnode->name, parent->name) < 0)
             parent->lchild = dnode->rchild;
@@ -130,7 +133,6 @@ int db_remove(char *name) {
             parent->rchild = dnode->rchild;
 
         // done with dnode
-        pthread_rwlock_unlock(&dnode->rwlock);
         node_destructor(dnode);
     } else {
         // Find the lexicographically smallest node in the right subtree and
@@ -147,11 +149,10 @@ int db_remove(char *name) {
             node_t *nextl = next->lchild;
             pthread_rwlock_wrlock(&nextl->rwlock); 
             pnext = &next->lchild;
-            pthread_rwlock_unlock(&next->rwlock); 
             next = nextl;
-            pthread_rwlock_wrlock(&next->rwlock); 
         }
-        pthread_rwlock_wrlock(&dnode->rwlock); 
+        pthread_rwlock_unlock(&next->rwlock); 
+        pthread_rwlock_unlock(&dnode->rwlock); 
         dnode->name = realloc(dnode->name, strlen(next->name) + 1);
         dnode->value = realloc(dnode->value, strlen(next->value) + 1);
 
@@ -177,17 +178,14 @@ node_t *search(char *name, node_t *parent, node_t **parentpp) {
 
     node_t *next;
     node_t *result;
-    //pthread_rwlock_rdlock(&parent->rwlock); 
+
     if (strcmp(name, parent->name) < 0) {
         next = parent->lchild;
     } else {
         next = parent->rchild;
     }
-    //pthread_rwlock_unlock(&parent->rwlock); 
     if (next == NULL) {
-        //pthread_rwlock_rdlock(&next->rwlock); 
         result = NULL;
-        //pthread_rwlock_unlock(&next->rwlock); 
     } else {
         pthread_rwlock_rdlock(&next->rwlock);
         if (strcmp(name, next->name) == 0) { 
@@ -196,7 +194,6 @@ node_t *search(char *name, node_t *parent, node_t **parentpp) {
             pthread_rwlock_unlock(&parent->rwlock);
             return search(name, next, parentpp);
         }
-        //pthread_rwlock_unlock(&next->rwlock); 
     }
 
     if (parentpp != NULL) {
