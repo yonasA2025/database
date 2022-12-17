@@ -224,9 +224,10 @@ void db_print_recurs(node_t *node, int lvl, FILE *out) {
     // print out the current node
     if (node == NULL) {
         fprintf(out, "(null)\n");
+        pthread_rwlock_unlock(&node->rwlock);
         return;
     }
-
+    pthread_rwlock_rdlock(&node->rwlock);
     if (node == &head) {
         fprintf(out, "(root)\n");
     } else {
