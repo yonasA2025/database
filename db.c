@@ -63,10 +63,9 @@ void db_query(char *name, char *result, int len) {
     // TODO: Make this thread-safe!
     node_t *target;
     target = search(name, &head, 0);
-    pthread_rwlock_wrlock(&target->rwlock); 
+    pthread_rwlock_rdlock(&target->rwlock); 
     if (target == 0) {
         snprintf(result, len, "not found");
-        pthread_rwlock_unlock(&target->rwlock); 
         return;
     } else {
         snprintf(result, len, "%s", target->value);
